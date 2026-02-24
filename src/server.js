@@ -1,55 +1,48 @@
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const db = require('./config/db');
 const app = require('./app');
 const Role = require('./models/Role');
 const User = require('./models/User');
 
-// Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
+db();
 
-// Seeding Logic
-const seedData = async () => {
+const init = async () => {
     try {
-        // Seed Roles
         const roles = ['MANAGER', 'SUPPORT', 'USER'];
-        for (const roleName of roles) {
-            const roleExists = await Role.findOne({ name: roleName });
-            if (!roleExists) {
-                await Role.create({ name: roleName });
-                console.log(`Role ${roleName} created`);
+        for (const r of roles) {
+            const has = await Role.findOne({ name: r });
+            if (!has) {
+                await Role.create({ name: r });
+                console.log(`new role: ${r}`);
             }
         }
 
-        // Seed Default Manager
-        const managerRole = await Role.findOne({ name: 'MANAGER' });
-        const adminExists = await User.findOne({ email: 'admin@company.com' });
-        if (!adminExists) {
+        const rm = await Role.findOne({ name: 'MANAGER' });
+        const admin = await User.findOne({ email: 'admin@company.com' });
+        if (!admin) {
             await User.create({
-                name: 'Default Admin',
+                name: 'Boss User',
                 email: 'admin@company.com',
                 password: 'Admin@123',
-                role: managerRole._id
+                role: rm._id
             });
-            console.log('Default Manager user created (admin@company.com / Admin@123)');
+            console.log('admin set');
         }
-    } catch (error) {
-        console.error(`Seeding error: ${error.message}`);
+    } catch (err) {
+        console.error(`init err: ${err.message}`);
     }
 };
 
-// Start Server
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-const server = app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    await seedData();
+const srv = app.listen(port, async () => {
+    console.log(`runnin on ${port}`);
+    await init();
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-    console.log(`Error: ${err.message}`);
-    server.close(() => process.exit(1));
+process.on('unhandledRejection', (err, p) => {
+    console.log(`oh no: ${err.message}`);
+    srv.close(() => process.exit(1));
 });

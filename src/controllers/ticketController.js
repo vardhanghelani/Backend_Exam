@@ -3,142 +3,124 @@ const TicketStatusLog = require('../models/TicketStatusLog');
 const User = require('../models/User');
 const Role = require('../models/Role');
 
-// @desc    Create ticket
-// @route   POST /tickets
-// @access  Private (USER, MANAGER)
-exports.createTicket = async (req, res, next) => {
+exports.mkTkt = async (q, s, n) => {
     try {
-        const { title, description, priority } = req.body;
-        const ticket = await Ticket.create({
+        const { title, description, priority } = q.body;
+        const t = await Ticket.create({
             title,
             description,
             priority,
-            created_by: req.user._id
+            created_by: q.user._id
         });
-        res.status(201).json({ success: true, data: ticket });
-    } catch (error) {
-        next(error);
+        s.status(201).json({ ok: true, data: t });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Get all tickets
-// @route   GET /tickets
-// @access  Private
-exports.getTickets = async (req, res, next) => {
+exports.getTkts = async (q, s, n) => {
     try {
-        let query = {};
+        let filt = {};
 
-        if (req.user.role.name === 'SUPPORT') {
-            query.assigned_to = req.user._id;
-        } else if (req.user.role.name === 'USER') {
-            query.created_by = req.user._id;
+        if (q.user.role.name === 'SUPPORT') {
+            filt.assigned_to = q.user._id;
+        } else if (q.user.role.name === 'USER') {
+            filt.created_by = q.user._id;
         }
-        // MANAGER gets all, so query remains empty {}
 
-        const tickets = await Ticket.find(query).populate('created_by assigned_to');
-        res.status(200).json({ success: true, count: tickets.length, data: tickets });
-    } catch (error) {
-        next(error);
+        const list = await Ticket.find(filt).populate('created_by assigned_to');
+        s.status(200).json({ ok: true, count: list.length, data: list });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Assign ticket
-// @route   PATCH /tickets/:id/assign
-// @access  Private (MANAGER, SUPPORT)
-exports.assignTicket = async (req, res, next) => {
+exports.setAssigned = async (q, s, n) => {
     try {
-        const { assigned_to } = req.body;
-        const user = await User.findById(assigned_to).populate('role');
+        const { assigned_to } = q.body;
+        const u = await User.findById(assigned_to).populate('role');
 
-        if (!user || user.role.name === 'USER') {
-            return res.status(400).json({ success: false, message: 'Cannot assign ticket to USER role' });
+        if (!u || u.role.name === 'USER') {
+            return s.status(400).json({ ok: false, msg: 'cant assign to normal user' });
         }
 
-        const ticket = await Ticket.findByIdAndUpdate(
-            req.params.id,
+        const t = await Ticket.findByIdAndUpdate(
+            q.params.id,
             { assigned_to },
             { new: true, runValidators: true }
         );
 
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        if (!t) {
+            return s.status(404).json({ ok: false, msg: 'no ticket found' });
         }
 
-        res.status(200).json({ success: true, data: ticket });
-    } catch (error) {
-        next(error);
+        s.status(200).json({ ok: true, data: t });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Update ticket status
-// @route   PATCH /tickets/:id/status
-// @access  Private (MANAGER, SUPPORT)
-exports.updateTicketStatus = async (req, res, next) => {
+exports.updStat = async (q, s, n) => {
     try {
-        const { status: new_status } = req.body;
-        const ticket = await Ticket.findById(req.params.id);
+        const { status: nextS } = q.body;
+        const t = await Ticket.findById(q.params.id);
 
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        if (!t) {
+            return s.status(404).json({ ok: false, msg: 'no ticket' });
         }
 
-        // Check permissions: MANAGER always, SUPPORT if assigned
-        if (req.user.role.name === 'SUPPORT' && ticket.assigned_to?.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ success: false, message: 'Not authorized to update status of unassigned ticket' });
+        if (q.user.role.name === 'SUPPORT' && t.assigned_to?.toString() !== q.user._id.toString()) {
+            return s.status(403).json({ ok: false, msg: 'not yours' });
         }
 
-        if (req.user.role.name === 'USER') {
-            return res.status(403).json({ success: false, message: 'USER role not authorized to update status' });
+        if (q.user.role.name === 'USER') {
+            return s.status(403).json({ ok: false, msg: 'no permission' });
         }
 
-        const allowedTransitions = {
+        const canGo = {
             'OPEN': ['IN_PROGRESS'],
             'IN_PROGRESS': ['RESOLVED'],
             'RESOLVED': ['CLOSED']
         };
 
-        if (!allowedTransitions[ticket.status] || !allowedTransitions[ticket.status].includes(new_status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid status transition from ${ticket.status} to ${new_status}`
+        if (!canGo[t.status] || !canGo[t.status].includes(nextS)) {
+            return s.status(400).json({
+                ok: false,
+                msg: `cant go from ${t.status} to ${nextS}`
             });
         }
 
-        const old_status = ticket.status;
-        ticket.status = new_status;
-        await ticket.save();
+        const oldS = t.status;
+        t.status = nextS;
+        await t.save();
 
         await TicketStatusLog.create({
-            ticket: ticket._id,
-            old_status,
-            new_status,
-            changed_by: req.user._id
+            ticket: t._id,
+            old_status: oldS,
+            new_status: nextS,
+            changed_by: q.user._id
         });
 
-        res.status(200).json({ success: true, data: ticket });
-    } catch (error) {
-        next(error);
+        s.status(200).json({ ok: true, data: t });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Delete ticket
-// @route   DELETE /tickets/:id
-// @access  Private (MANAGER)
-exports.deleteTicket = async (req, res, next) => {
+exports.killTkt = async (q, s, n) => {
     try {
-        const ticket = await Ticket.findById(req.params.id);
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        const t = await Ticket.findById(q.params.id);
+        if (!t) {
+            return s.status(404).json({ ok: false, msg: 'no ticket' });
         }
 
-        // Cascade delete comments and status logs
-        await require('../models/TicketComment').deleteMany({ ticket: ticket._id });
-        await require('../models/TicketStatusLog').deleteMany({ ticket: ticket._id });
+        await require('../models/TicketComment').deleteMany({ ticket: t._id });
+        await require('../models/TicketStatusLog').deleteMany({ ticket: t._id });
 
-        await ticket.deleteOne();
+        await t.deleteOne();
 
-        res.status(200).json({ success: true, data: {} });
-    } catch (error) {
-        next(error);
+        s.status(200).json({ ok: true, data: {} });
+    } catch (err) {
+        n(err);
     }
 };

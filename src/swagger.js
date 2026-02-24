@@ -3,9 +3,9 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = {
     openapi: '3.0.0',
     info: {
-        title: 'Support Ticket Management API',
-        version: '1.0.0',
-        description: 'API for managing support tickets with roles and permissions'
+        title: 'Tkt API',
+        version: '1.0',
+        description: 'simple ticket api'
     },
     servers: [
         {
@@ -30,7 +30,7 @@ const swaggerDocument = {
         '/auth/login': {
             post: {
                 tags: ['Auth'],
-                summary: 'Login user',
+                summary: 'login user',
                 requestBody: {
                     required: true,
                     content: {
@@ -46,19 +46,19 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Success' }
+                    200: { description: 'log ok' }
                 }
             }
         },
         '/users': {
             get: {
                 tags: ['Users'],
-                summary: 'Get all users (Manager only)',
-                responses: { 200: { description: 'Success' } }
+                summary: 'get all users',
+                responses: { 200: { description: 'list users' } }
             },
             post: {
                 tags: ['Users'],
-                summary: 'Create user (Manager only)',
+                summary: 'add new user',
                 requestBody: {
                     required: true,
                     content: {
@@ -75,18 +75,18 @@ const swaggerDocument = {
                         }
                     }
                 },
-                responses: { 201: { description: 'Created' } }
+                responses: { 201: { description: 'user added' } }
             }
         },
         '/tickets': {
             get: {
                 tags: ['Tickets'],
-                summary: 'Get tickets (MANAGER=all, SUPPORT=assigned, USER=own)',
-                responses: { 200: { description: 'Success' } }
+                summary: 'list tkts',
+                responses: { 200: { description: 'all ok' } }
             },
             post: {
                 tags: ['Tickets'],
-                summary: 'Create ticket (USER, MANAGER)',
+                summary: 'mk new tkt',
                 requestBody: {
                     required: true,
                     content: {
@@ -94,21 +94,21 @@ const swaggerDocument = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    title: { type: 'string', minLength: 5 },
-                                    description: { type: 'string', minLength: 10 },
+                                    title: { type: 'string' },
+                                    description: { type: 'string' },
                                     priority: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH'] }
                                 }
                             }
                         }
                     }
                 },
-                responses: { 201: { description: 'Created' } }
+                responses: { 201: { description: 'tkt made' } }
             }
         },
         '/tickets/{id}/assign': {
             patch: {
                 tags: ['Tickets'],
-                summary: 'Assign ticket (MANAGER, SUPPORT)',
+                summary: 'assign tkt',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
                 requestBody: {
                     required: true,
@@ -117,19 +117,19 @@ const swaggerDocument = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    assigned_to: { type: 'string', description: 'User ID' }
+                                    assigned_to: { type: 'string' }
                                 }
                             }
                         }
                     }
                 },
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'assigned' } }
             }
         },
         '/tickets/{id}/status': {
             patch: {
                 tags: ['Tickets'],
-                summary: 'Update ticket status (MANAGER, SUPPORT assigned)',
+                summary: 'upd status',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
                 requestBody: {
                     required: true,
@@ -144,27 +144,27 @@ const swaggerDocument = {
                         }
                     }
                 },
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'status ok' } }
             }
         },
         '/tickets/{id}': {
             delete: {
                 tags: ['Tickets'],
-                summary: 'Delete ticket (MANAGER only)',
+                summary: 'kill tkt',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'gone' } }
             }
         },
         '/tickets/{id}/comments': {
             get: {
                 tags: ['Comments'],
-                summary: 'List comments for a ticket (Authorized roles)',
+                summary: 'get tkt comms',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'comms list' } }
             },
             post: {
                 tags: ['Comments'],
-                summary: 'Add comment to ticket (Authorized roles)',
+                summary: 'add comm',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
                 requestBody: {
                     required: true,
@@ -179,13 +179,13 @@ const swaggerDocument = {
                         }
                     }
                 },
-                responses: { 201: { description: 'Created' } }
+                responses: { 201: { description: 'comm added' } }
             }
         },
         '/comments/{id}': {
             patch: {
                 tags: ['Comments'],
-                summary: 'Edit comment (author or MANAGER)',
+                summary: 'edit comm',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
                 requestBody: {
                     required: true,
@@ -200,13 +200,13 @@ const swaggerDocument = {
                         }
                     }
                 },
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'updated' } }
             },
             delete: {
                 tags: ['Comments'],
-                summary: 'Delete comment (author or MANAGER)',
+                summary: 'kill comm',
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-                responses: { 200: { description: 'Success' } }
+                responses: { 200: { description: 'gone' } }
             }
         }
     }

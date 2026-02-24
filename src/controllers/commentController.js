@@ -1,107 +1,93 @@
 const TicketComment = require('../models/TicketComment');
 
-// @desc    Add comment to ticket
-// @route   POST /tickets/:id/comments
-// @access  Private
-exports.addComment = async (req, res, next) => {
+exports.mkComm = async (q, s, n) => {
     try {
         const Ticket = require('../models/Ticket');
-        const ticket = await Ticket.findById(req.params.id);
+        const t = await Ticket.findById(q.params.id);
 
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        if (!t) {
+            return s.status(404).json({ ok: false, msg: 'no ticket' });
         }
 
-        // Check permissions: MANAGER; SUPPORT if assigned; USER if owner
-        const isManager = req.user.role.name === 'MANAGER';
-        const isAssignedSupport = req.user.role.name === 'SUPPORT' && ticket.assigned_to?.toString() === req.user._id.toString();
-        const isOwner = req.user.role.name === 'USER' && ticket.created_by.toString() === req.user._id.toString();
+        const isMgr = q.user.role.name === 'MANAGER';
+        const isSup = q.user.role.name === 'SUPPORT' && t.assigned_to?.toString() === q.user._id.toString();
+        const isOwn = q.user.role.name === 'USER' && t.created_by.toString() === q.user._id.toString();
 
-        if (!isManager && !isAssignedSupport && !isOwner) {
-            return res.status(403).json({ success: false, message: 'Not authorized to comment on this ticket' });
+        if (!isMgr && !isSup && !isOwn) {
+            return s.status(403).json({ ok: false, msg: 'no permission for this' });
         }
 
-        const comment = await TicketComment.create({
-            ticket: req.params.id,
-            user: req.user._id,
-            comment: req.body.comment
+        const c = await TicketComment.create({
+            ticket: q.params.id,
+            user: q.user._id,
+            comment: q.body.comment
         });
-        res.status(201).json({ success: true, data: comment });
-    } catch (error) {
-        next(error);
+        s.status(201).json({ ok: true, data: c });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Get ticket comments
-// @route   GET /tickets/:id/comments
-// @access  Private
-exports.getComments = async (req, res, next) => {
+exports.getComms = async (q, s, n) => {
     try {
         const Ticket = require('../models/Ticket');
-        const ticket = await Ticket.findById(req.params.id);
+        const t = await Ticket.findById(q.params.id);
 
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        if (!t) {
+            return s.status(404).json({ ok: false, msg: 'no ticket' });
         }
 
-        // Check permissions: MANAGER; SUPPORT if assigned; USER if owner
-        const isManager = req.user.role.name === 'MANAGER';
-        const isAssignedSupport = req.user.role.name === 'SUPPORT' && ticket.assigned_to?.toString() === req.user._id.toString();
-        const isOwner = req.user.role.name === 'USER' && ticket.created_by.toString() === req.user._id.toString();
+        const isMgr = q.user.role.name === 'MANAGER';
+        const isSup = q.user.role.name === 'SUPPORT' && t.assigned_to?.toString() === q.user._id.toString();
+        const isOwn = q.user.role.name === 'USER' && t.created_by.toString() === q.user._id.toString();
 
-        if (!isManager && !isAssignedSupport && !isOwner) {
-            return res.status(403).json({ success: false, message: 'Not authorized to view comments for this ticket' });
+        if (!isMgr && !isSup && !isOwn) {
+            return s.status(403).json({ ok: false, msg: 'cant see this' });
         }
 
-        const comments = await TicketComment.find({ ticket: req.params.id }).populate('user');
-        res.status(200).json({ success: true, count: comments.length, data: comments });
-    } catch (error) {
-        next(error);
+        const list = await TicketComment.find({ ticket: q.params.id }).populate('user');
+        s.status(200).json({ ok: true, count: list.length, data: list });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Update comment
-// @route   PATCH /comments/:id
-// @access  Private
-exports.updateComment = async (req, res, next) => {
+exports.editComm = async (q, s, n) => {
     try {
-        let comment = await TicketComment.findById(req.params.id);
-        if (!comment) {
-            return res.status(404).json({ success: false, message: 'Comment not found' });
+        let c = await TicketComment.findById(q.params.id);
+        if (!c) {
+            return s.status(404).json({ ok: false, msg: 'no comment' });
         }
 
-        if (comment.user.toString() !== req.user._id.toString() && req.user.role.name !== 'MANAGER') {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+        if (c.user.toString() !== q.user._id.toString() && q.user.role.name !== 'MANAGER') {
+            return s.status(403).json({ ok: false, msg: 'forbidden' });
         }
 
-        comment = await TicketComment.findByIdAndUpdate(req.params.id, req.body, {
+        c = await TicketComment.findByIdAndUpdate(q.params.id, q.body, {
             new: true,
             runValidators: true
         });
 
-        res.status(200).json({ success: true, data: comment });
-    } catch (error) {
-        next(error);
+        s.status(200).json({ ok: true, data: c });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Delete comment
-// @route   DELETE /comments/:id
-// @access  Private
-exports.deleteComment = async (req, res, next) => {
+exports.killComm = async (q, s, n) => {
     try {
-        const comment = await TicketComment.findById(req.params.id);
-        if (!comment) {
-            return res.status(404).json({ success: false, message: 'Comment not found' });
+        const c = await TicketComment.findById(q.params.id);
+        if (!c) {
+            return s.status(404).json({ ok: false, msg: 'no comment' });
         }
 
-        if (comment.user.toString() !== req.user._id.toString() && req.user.role.name !== 'MANAGER') {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+        if (c.user.toString() !== q.user._id.toString() && q.user.role.name !== 'MANAGER') {
+            return s.status(403).json({ ok: false, msg: 'no auth' });
         }
 
-        await comment.deleteOne();
-        res.status(200).json({ success: true, data: {} });
-    } catch (error) {
-        next(error);
+        await c.deleteOne();
+        s.status(200).json({ ok: true, data: {} });
+    } catch (err) {
+        n(err);
     }
 };

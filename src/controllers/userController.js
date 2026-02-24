@@ -1,39 +1,33 @@
 const User = require('../models/User');
 const Role = require('../models/Role');
 
-// @desc    Get all users
-// @route   GET /users
-// @access  Private/Manager
-exports.getUsers = async (req, res, next) => {
+exports.getUsers = async (q, s, n) => {
     try {
-        const users = await User.find().populate('role');
-        res.status(200).json({ success: true, count: users.length, data: users });
-    } catch (error) {
-        next(error);
+        const list = await User.find().populate('role');
+        s.status(200).json({ ok: true, count: list.length, data: list });
+    } catch (err) {
+        n(err);
     }
 };
 
-// @desc    Create user
-// @route   POST /users
-// @access  Private/Manager
-exports.createUser = async (req, res, next) => {
+exports.mkUser = async (q, s, n) => {
     try {
-        const { name, email, password, roleName } = req.body;
+        const { name, email, password, roleName } = q.body;
 
-        const role = await Role.findOne({ name: roleName });
-        if (!role) {
-            return res.status(400).json({ success: false, message: 'Invalid role' });
+        const foundR = await Role.findOne({ name: roleName });
+        if (!foundR) {
+            return s.status(400).json({ ok: false, msg: 'role not found' });
         }
 
-        const user = await User.create({
+        const u = await User.create({
             name,
             email,
             password,
-            role: role._id
+            role: foundR._id
         });
 
-        res.status(201).json({ success: true, data: user });
-    } catch (error) {
-        next(error);
+        s.status(201).json({ ok: true, data: u });
+    } catch (err) {
+        n(err);
     }
 };

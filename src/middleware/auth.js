@@ -1,26 +1,26 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const protect = async (req, res, next) => {
-    let token;
+const checkAuth = async (q, s, n) => {
+    let t;
 
     if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith('Bearer')
+        q.headers.authorization &&
+        q.headers.authorization.startsWith('Bearer')
     ) {
         try {
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = await User.findById(decoded.id).populate('role');
-            next();
-        } catch (error) {
-            return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+            t = q.headers.authorization.split(' ')[1];
+            const d = jwt.verify(t, process.env.JWT_SECRET);
+            q.user = await User.findById(d.id).populate('role');
+            n();
+        } catch (err) {
+            return s.status(401).json({ ok: false, msg: 'login first' });
         }
     }
 
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    if (!t) {
+        return s.status(401).json({ ok: false, msg: 'no token' });
     }
 };
 
-module.exports = { protect };
+module.exports = { checkAuth };

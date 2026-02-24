@@ -1,13 +1,13 @@
-const authorize = (...roles) => {
-    return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role.name)) {
-            return res.status(403).json({
-                success: false,
-                message: `Role ${req.user.role.name} is not authorized to access this route`
+const checkRole = (...roles) => {
+    return (q, s, n) => {
+        if (!q.user || !roles.includes(q.user.role.name)) {
+            return s.status(403).json({
+                ok: false,
+                msg: `ur role ${q.user.role.name} cant do this`
             });
         }
-        next();
+        n();
     };
 };
 
-module.exports = { authorize };
+module.exports = { checkRole };

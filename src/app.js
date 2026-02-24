@@ -1,29 +1,25 @@
 const express = require('express');
 const cors = require('cors');
-const { swaggerUi, swaggerDocument } = require('./swagger');
-const errorHandler = require('./middleware/error');
+const sw = require('./swagger');
+const errH = require('./middleware/error');
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const ticketRoutes = require('./routes/ticketRoutes');
-const commentRoutes = require('./routes/commentRoutes');
+const auth = require('./routes/authRoutes');
+const users = require('./routes/userRoutes');
+const tkts = require('./routes/ticketRoutes');
+const box = require('./routes/commentRoutes');
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(cors());
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
-app.use('/tickets', ticketRoutes);
-app.use('/comments', commentRoutes);
+app.use('/auth', auth);
+app.use('/users', users);
+app.use('/tickets', tkts);
+app.use('/comments', box);
 
-// Swagger
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/docs', sw.swaggerUi.serve, sw.swaggerUi.setup(sw.swaggerDocument));
 
-// Error Handler
-app.use(errorHandler);
+app.use(errH);
 
 module.exports = app;
